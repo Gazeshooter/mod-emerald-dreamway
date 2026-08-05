@@ -32,7 +32,7 @@ The module is inspired by the Emerald Dreamway introduced in Legion. It repurpos
 
 1. Clone the repository into the AzerothCore `modules` directory.
 2. Reconfigure and rebuild AzerothCore.
-3. Start `worldserver`.
+3. Start `worldserver`
 
 ## Configuration
 
