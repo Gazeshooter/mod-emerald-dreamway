@@ -18,4 +18,3 @@ Features include
   - Vehicles
 - Player-specific error and availability messages
 - Automatic installation of database records
-- No client patch required
