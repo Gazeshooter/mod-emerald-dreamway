@@ -1,3 +1,5 @@
+-- Emerald Dreamway pedestal and destination-marker spawns.
+
 DELETE FROM `gameobject`
 WHERE `id` IN (990001, 990002, 990003, 990004, 990005, 990006, 990007, 990008, 990009, 990010, 990011, 990012);
 

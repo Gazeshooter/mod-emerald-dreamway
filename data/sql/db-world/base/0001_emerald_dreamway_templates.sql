@@ -1,3 +1,5 @@
+-- Emerald Dreamway GameObject templates.
+
 DELETE FROM `gameobject_template`
 WHERE `entry` IN (990001, 990002, 990003, 990004, 990005, 990006, 990007, 990008, 990009, 990010, 990011, 990012);
 
