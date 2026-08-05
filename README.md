@@ -11,13 +11,10 @@ The module is inspired by the Emerald Dreamway introduced in Legion. It repurpos
   - Bough Shadow, Ashenvale
   - Dream Bough, Feralas
   - Seradane, Hinterlands
-- Shared Verdant Fields hub:
-  - Changes map 169 from a raid map to a common world map through the server-side `map_dbc` override.
-  - Allows unrelated players inside the Emerald Dream to occupy and see the same map.
-- Verdant Fields graveyard:
-  - Releases ghosts at the custom graveyard in the Verdant Fields.
-  - Spawns a stationary Spirit Healer beside the release point.
-  - Prevents the Northrend spectral gryphon or wind rider ghost form from being used on map 169.
+- Un-instances Emerald Dream zone:
+  - Changes map 169 from a raid to a common world map through a `map_dbc` override
+  - Allows players to occupy the same Emerald Dream map and see each other
+- Graveyard with spirit healer
 - Master on/off switch.
 - Individual on/off switches for each route.
 - Optional two-second nature-themed activation cast.
