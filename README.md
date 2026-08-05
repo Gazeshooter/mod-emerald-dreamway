@@ -20,6 +20,9 @@ Features include
 - Player-specific error and availability messages
 - Automatic installation of database records
 
+<img width="529" height="652" alt="image" src="https://github.com/user-attachments/assets/8f117154-94b2-493a-b430-1f0019a460b3" />
+
+
 # Installation
 1. Clone repo to your AzerothCore modules directory
 2. Rebuild and restart `worldserver`
