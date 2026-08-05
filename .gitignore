@@ -1,5 +1,35 @@
+@'
+# Local active configuration files
+conf/*.conf
+!conf/*.conf.dist
+
+# Visual Studio
 .vs/
 *.user
 *.suo
 *.VC.db
 *.VC.opendb
+
+# CMake and build products
+Build/
+build/
+bin/
+obj/
+CMakeFiles/
+CMakeCache.txt
+
+# Temporary and editor files
+*.tmp
+*.bak
+*.orig
+*.rej
+*.swp
+*~
+
+# Local archives
+*.zip
+
+# Operating system files
+.DS_Store
+Thumbs.db
+'@ | Set-Content -Encoding ascii '.gitignore'
