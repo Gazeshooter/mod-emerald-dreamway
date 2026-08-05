@@ -34,10 +34,6 @@ The module is inspired by the Emerald Dreamway introduced in Legion. It repurpos
 2. Reconfigure and rebuild AzerothCore.
 3. Start `worldserver`.
 
-The module SQL files automatically add the required GameObject templates, spawns, spell binding, shared-map override, graveyard, and Spirit Healer records to the world database.
-
-A full `worldserver` restart is required after the map or graveyard SQL is applied.
-
 ## Configuration
 
 | Setting | Default | Description |
