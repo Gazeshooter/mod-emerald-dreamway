@@ -44,3 +44,7 @@ The module's SQL files will automatically add the required GameObject templates 
 
 # Activation Cast
 When `EmeraldDreamway.Cast.Enable` is enabled, interacting with a pedestal triggers a 2 second nature cast before teleporting. The cast uses a stock client spell called `Cosmetic Nature Cast`. Creating a custom spell would require a DBC edit which is outside the scope of this module. Moving more than 0.5 yards during the cast prevents the teleport. Player eligibility is checked both at the start and end of the cast.
+
+## License
+
+This project is licensed under the GNU General Public License version 2 or later. See [LICENSE](LICENSE).
