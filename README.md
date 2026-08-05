@@ -9,8 +9,8 @@ Features include
   - Bough Shadow, Ashenvale
   - Dream Bough, Feralas
   - Seradane, Hinterlands
-- Master on/off
-- Individual enable switches for each route
+- Master on/off switch
+- Individual on/off switches for each route
 - Configurable minimum character level
 - Configurable restrictions for:
   - Combat
