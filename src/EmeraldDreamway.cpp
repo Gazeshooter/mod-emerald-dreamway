@@ -337,10 +337,7 @@ public:
         }
 
         StorePendingTeleport(player, *route);
-
-        // Continue with AzerothCore's normal Goober activation.
-        // The GameObject template casts spell 60957 from Data10 and uses
-        // castBarCaption for the visible interaction text.
+        
         return false;
     }
 };
