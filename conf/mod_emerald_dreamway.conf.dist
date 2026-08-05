@@ -1,0 +1,56 @@
+[worldserver]
+
+###################################################################################################
+# EMERALD DREAMWAY
+#
+# EmeraldDreamway.Enable
+#     Enables the Emerald Dreamway module.
+#     Default: 1
+#
+EmeraldDreamway.Enable = 1
+
+#
+# EmeraldDreamway.Pedestals.Enable
+#     Enables the clickable pedestal implementation.
+#     This can be disabled later when AreaTriggers replace the pedestals.
+#     Default: 1
+#
+EmeraldDreamway.Pedestals.Enable = 1
+
+#
+# EmeraldDreamway.MinimumLevel
+#     Minimum character level required to use any Dreamway route.
+#     Default: 1
+#
+EmeraldDreamway.MinimumLevel = 1
+
+#
+# EmeraldDreamway.AllowInCombat
+#     Allows pedestal use while the player is in combat.
+#     Default: 0
+#
+EmeraldDreamway.AllowInCombat = 0
+
+#
+# EmeraldDreamway.AllowDead
+#     Allows dead players and ghosts to use the pedestals.
+#     Default: 0
+#
+EmeraldDreamway.AllowDead = 0
+
+#
+# EmeraldDreamway.AllowInVehicle
+#     Allows players who are currently in a vehicle to use the pedestals.
+#     Default: 0
+#
+EmeraldDreamway.AllowInVehicle = 0
+
+#
+# Individual route controls. Each option controls both directions.
+#
+# Default: 1
+#
+EmeraldDreamway.Route.TwilightGrove.Enable = 1
+EmeraldDreamway.Route.BoughShadow.Enable = 1
+EmeraldDreamway.Route.DreamBough.Enable = 1
+EmeraldDreamway.Route.Seradane.Enable = 1

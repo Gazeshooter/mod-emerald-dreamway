@@ -1,6 +1,12 @@
+#include "Chat.h"
+#include "Config.h"
 #include "GameObject.h"
 #include "Player.h"
 #include "ScriptMgr.h"
+
+#include <array>
+#include <string>
+#include <string_view>
 
 namespace EmeraldDreamway
 {
@@ -32,85 +38,89 @@ namespace EmeraldDreamway
         float Orientation;
     };
 
-    // Duskwood -> Verdant Fields
-    constexpr TeleportDestination VERDANT_FIELDS_DUSKWOOD_ARRIVAL
+    struct DreamwayRoute
     {
-        169,
-        -2060.9365f,
-        -942.6356f,
-        131.84442f,
-        3.6274557f
+        uint32 GameObjectEntry;
+        uint32 SourceMapId;
+        char const* EnabledConfigKey;
+        TeleportDestination Destination;
     };
 
-    // Verdant Fields -> Duskwood
-    constexpr TeleportDestination TWILIGHT_GROVE_ARRIVAL
-    {
-        0,
-        -10371.299f,
-        -421.52963f,
-        63.62110f,
-        3.1898613f
-    };
+    constexpr std::array<DreamwayRoute, 8> ROUTES =
+    {{
+        // Twilight Grove, Duskwood <-> Verdant Fields
+        {
+            GO_TWILIGHT_GROVE_TO_DREAMWAY,
+            0,
+            "EmeraldDreamway.Route.TwilightGrove.Enable",
+            { 169, -2060.9365f, -942.6356f, 131.84442f, 3.6274557f }
+        },
+        {
+            GO_DREAMWAY_TO_TWILIGHT_GROVE,
+            169,
+            "EmeraldDreamway.Route.TwilightGrove.Enable",
+            { 0, -10371.299f, -421.52963f, 63.62110f, 3.1898613f }
+        },
 
-    // Ashenvale -> Verdant Fields
-    constexpr TeleportDestination VERDANT_FIELDS_ASHENVALE_ARRIVAL
-    {
-        169,
-        -1999.9692f,
-        -887.1238f,
-        128.27328f,
-        3.947896f
-    };
+        // Bough Shadow, Ashenvale <-> Verdant Fields
+        {
+            GO_BOUGH_SHADOW_TO_DREAMWAY,
+            1,
+            "EmeraldDreamway.Route.BoughShadow.Enable",
+            { 169, -1999.9692f, -887.1238f, 128.27328f, 3.947896f }
+        },
+        {
+            GO_DREAMWAY_TO_BOUGH_SHADOW,
+            169,
+            "EmeraldDreamway.Route.BoughShadow.Enable",
+            { 1, 3311.303f, -3734.423f, 173.45723f, 2.948247f }
+        },
 
-    // Verdant Fields -> Ashenvale
-    constexpr TeleportDestination BOUGH_SHADOW_ARRIVAL
-    {
-        1,
-        3311.303f,
-        -3734.423f,
-        173.45723f,
-        2.948247f
-    };
+        // Dream Bough, Feralas <-> Verdant Fields
+        {
+            GO_DREAM_BOUGH_TO_DREAMWAY,
+            1,
+            "EmeraldDreamway.Route.DreamBough.Enable",
+            { 169, -2124.1707f, -985.322f, 130.74112f, 0.87699795f }
+        },
+        {
+            GO_DREAMWAY_TO_DREAM_BOUGH,
+            169,
+            "EmeraldDreamway.Route.DreamBough.Enable",
+            { 1, -2864.227f, 1879.3861f, 52.646618f, 2.7819788f }
+        },
 
-    // Feralas -> Verdant Fields
-    constexpr TeleportDestination VERDANT_FIELDS_FERALAS_ARRIVAL
-    {
-        169,
-        -2124.1707f,
-        -985.322f,
-        130.74112f,
-        0.87699795f
-    };
+        // Seradane, Hinterlands <-> Verdant Fields
+        {
+            GO_SERADANE_TO_DREAMWAY,
+            0,
+            "EmeraldDreamway.Route.Seradane.Enable",
+            { 169, -2125.8394f, -909.9735f, 135.20438f, 5.7817802f }
+        },
+        {
+            GO_DREAMWAY_TO_SERADANE,
+            169,
+            "EmeraldDreamway.Route.Seradane.Enable",
+            { 0, 874.5052f, -3972.7332f, 145.82391f, 3.4519851f }
+        }
+    }};
 
-    // Verdant Fields -> Feralas
-    constexpr TeleportDestination DREAM_BOUGH_ARRIVAL
+    DreamwayRoute const* FindRoute(uint32 gameObjectEntry)
     {
-        1,
-        -2864.227f,
-        1879.3861f,
-        52.646618f,
-        2.7819788f
-    };
+        for (DreamwayRoute const& route : ROUTES)
+        {
+            if (route.GameObjectEntry == gameObjectEntry)
+                return &route;
+        }
 
-    // Hinterlands -> Verdant Fields
-    constexpr TeleportDestination VERDANT_FIELDS_HINTERLANDS_ARRIVAL
-    {
-        169,
-        -2125.8394f,
-        -909.9735f,
-        135.20438f,
-        5.7817802f
-    };
+        return nullptr;
+    }
 
-    // Verdant Fields -> Hinterlands
-    constexpr TeleportDestination SERADANE_ARRIVAL
+    void SendPlayerMessage(Player* player, std::string_view message)
     {
-        0,
-        874.5052f,
-        -3972.7332f,
-        145.82391f,
-        3.4519851f
-    };
+        if (player && player->GetSession())
+            ChatHandler(player->GetSession()).SendSysMessage(message);
+    }
 }
 
 class go_emerald_dreamway_pedestal : public GameObjectScript
@@ -125,52 +135,74 @@ public:
     {
         using namespace EmeraldDreamway;
 
-        TeleportDestination const* destination = nullptr;
+        if (!player || !gameObject)
+            return false;
 
-        switch (gameObject->GetEntry())
+        DreamwayRoute const* route = FindRoute(gameObject->GetEntry());
+        if (!route)
+            return false;
+
+        if (!sConfigMgr->GetOption<bool>("EmeraldDreamway.Enable", true) ||
+            !sConfigMgr->GetOption<bool>("EmeraldDreamway.Pedestals.Enable", true))
         {
-            case GO_TWILIGHT_GROVE_TO_DREAMWAY:
-                destination = &VERDANT_FIELDS_DUSKWOOD_ARRIVAL;
-                break;
-
-            case GO_DREAMWAY_TO_TWILIGHT_GROVE:
-                destination = &TWILIGHT_GROVE_ARRIVAL;
-                break;
-
-            case GO_BOUGH_SHADOW_TO_DREAMWAY:
-                destination = &VERDANT_FIELDS_ASHENVALE_ARRIVAL;
-                break;
-
-            case GO_DREAMWAY_TO_BOUGH_SHADOW:
-                destination = &BOUGH_SHADOW_ARRIVAL;
-                break;
-
-            case GO_DREAM_BOUGH_TO_DREAMWAY:
-                destination = &VERDANT_FIELDS_FERALAS_ARRIVAL;
-                break;
-
-            case GO_DREAMWAY_TO_DREAM_BOUGH:
-                destination = &DREAM_BOUGH_ARRIVAL;
-                break;
-
-            case GO_SERADANE_TO_DREAMWAY:
-                destination = &VERDANT_FIELDS_HINTERLANDS_ARRIVAL;
-                break;
-
-            case GO_DREAMWAY_TO_SERADANE:
-                destination = &SERADANE_ARRIVAL;
-                break;
-
-            default:
-                return false;
+            SendPlayerMessage(player, "The Emerald Dreamway is currently unavailable.");
+            return true;
         }
 
-        player->TeleportTo(
-            destination->MapId,
-            destination->X,
-            destination->Y,
-            destination->Z,
-            destination->Orientation);
+        if (!sConfigMgr->GetOption<bool>(route->EnabledConfigKey, true))
+        {
+            SendPlayerMessage(player, "This Dreamway route is currently unavailable.");
+            return true;
+        }
+
+        if (player->GetMapId() != route->SourceMapId)
+        {
+            SendPlayerMessage(player, "This pedestal is not anchored to the correct part of the Dreamway.");
+            return true;
+        }
+
+        uint32 minimumLevel = sConfigMgr->GetOption<uint32>("EmeraldDreamway.MinimumLevel", 1);
+        if (player->GetLevel() < minimumLevel)
+        {
+            SendPlayerMessage(
+                player,
+                "You must be at least level " + std::to_string(minimumLevel) +
+                    " to use the Emerald Dreamway.");
+            return true;
+        }
+
+        if (!sConfigMgr->GetOption<bool>("EmeraldDreamway.AllowInCombat", false) &&
+            player->IsInCombat())
+        {
+            SendPlayerMessage(player, "You cannot use the Emerald Dreamway while in combat.");
+            return true;
+        }
+
+        if (!sConfigMgr->GetOption<bool>("EmeraldDreamway.AllowDead", false) &&
+            !player->IsAlive())
+        {
+            SendPlayerMessage(player, "You cannot use the Emerald Dreamway while dead.");
+            return true;
+        }
+
+        if (!sConfigMgr->GetOption<bool>("EmeraldDreamway.AllowInVehicle", false) &&
+            player->GetVehicle())
+        {
+            SendPlayerMessage(player, "You cannot use the Emerald Dreamway while in a vehicle.");
+            return true;
+        }
+
+        TeleportDestination const& destination = route->Destination;
+
+        if (!player->TeleportTo(
+                destination.MapId,
+                destination.X,
+                destination.Y,
+                destination.Z,
+                destination.Orientation))
+        {
+            SendPlayerMessage(player, "The Emerald Dreamway could not be reached.");
+        }
 
         return true;
     }
