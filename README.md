@@ -4,6 +4,11 @@
 
 The module is inspired by the Emerald Dreamway introduced in Legion. It repurposes the unused Verdant Fields area and populates it with clickable GameObjects, requiring no client-side MPQ or DBC modifications.
 
+## TO DO
+  NPC detailing
+  NPCs (innkeeper, vendor, reagents) toggle config
+  Camp decoration
+
 ## Features
 
 - Four Dreamway routes:
