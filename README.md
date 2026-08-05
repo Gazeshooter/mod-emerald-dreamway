@@ -11,11 +11,12 @@ Features include
   - Seradane, Hinterlands
 - Master on/off switch
 - Individual on/off switches for each route
-- Configurable minimum character level
+- Optional two-second nature-themed activation cast
 - Configurable restrictions for:
   - Combat
   - Dead players
   - Vehicles
+  - Player Level
 - Player-specific error and availability messages
 - Automatic installation of database records
 
@@ -25,20 +26,19 @@ Features include
 The module's SQL files will automatically add the required GameObject templates and spawns to the world database
 
 # Configuration
-| Setting                            | Default | Description                          |
-| ---------------------------------- | ------: | ------------------------------------ |
-| `EmeraldDreamway.Enable`           |     `1` | Enables the complete Dreamway system |
-| `EmeraldDreamway.Pedestals.Enable` |     `1` | Enables clickable teleport pedestals |
-| `EmeraldDreamway.MinimumLevel`     |     `1` | Minimum level required               |
-| `EmeraldDreamway.AllowInCombat`    |     `0` | Allows use during combat             |
-| `EmeraldDreamway.AllowDead`        |     `0` | Allows dead players and ghosts       |
-| `EmeraldDreamway.AllowInVehicle`   |     `0` | Allows use while in a vehicle        |
+| Setting                                      | Default | Description                          |
+| ---------------------------------------------| ----| ---------------------------------------- |
+| `EmeraldDreamway.Enable`                     | `1` | Enables the complete Dreamway system     |
+| `EmeraldDreamway.Pedestals.Enable`           | `1` | Enables clickable teleport pedestals     |
+| `EmeraldDreamway.Cast.Enable`                | `1` | Enables the 2-second activation cast     |
+| `EmeraldDreamway.MinimumLevel`               | `1` | Minimum level required                   |
+| `EmeraldDreamway.AllowInCombat`              | `0` | Allows use during combat                 |
+| `EmeraldDreamway.AllowDead`                  | `0` | Allows dead players and ghosts           |
+| `EmeraldDreamway.AllowInVehicle`             | `0` | Allows use while in a vehicle            |
+| `EmeraldDreamway.Route.TwilightGrove.Enable` | `1` | Enables the Duskwood route               |
+| `EmeraldDreamway.Route.BoughShadow.Enable`   | `1` | Enables the Ashenvale route              |
+| `EmeraldDreamway.Route.DreamBough.Enable`    | `1` | Enables the Feralas route                |
+| `EmeraldDreamway.Route.Seradane.Enable`      | `1` | Enables the Hinterlands route            |
 
-Each route can also be enabled or disabled independently:
-
-```ini
-EmeraldDreamway.Route.TwilightGrove.Enable = 1
-EmeraldDreamway.Route.BoughShadow.Enable = 1
-EmeraldDreamway.Route.DreamBough.Enable = 1
-EmeraldDreamway.Route.Seradane.Enable = 1
-```
+# Activation Cast
+When `EmeraldDreamway.Cast.Enable` is enabled, interacting with a pedestal triggers a 2 second nature cast before teleporting. The cast uses a stock client spell called `Cosmetic Nature Cast`. Creating a custom spell would require a DBC edit which is outside the scope of this module. Moving more than 0.5 yards during the cast prevents the teleport. Player eligibility is checked both at the start and end of the cast.
