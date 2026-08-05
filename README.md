@@ -3,4 +3,4 @@
 
 Features include:
  - 4 sets of teleporters: Hinterlands, Duskwood, Ashenvale, Feralas
- - Configurable settings to turn on/off certain portals, change teleport eligibility (combat/mounted/dead/vehicle)
+ - Configurable settings to turn on/off portals, change teleport eligibility (combat/mounted/dead/vehicle/minlevel)
