@@ -4,6 +4,7 @@
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "SpellScript.h"
+#include "SpellInfo.h"
 
 #include <array>
 #include <chrono>
@@ -15,6 +16,46 @@
 
 namespace EmeraldDreamway
 {
+    constexpr uint32 MAP_EMERALD_DREAM = 169;
+    constexpr uint32 GRAVEYARD_VERDANT_FIELDS = 990101;
+    constexpr float GRAVEYARD_VERDANT_FIELDS_ORIENTATION = 4.9060855f;
+
+    enum GhostFlightSpells : uint32
+    {
+        SPELL_SWIFT_SPECTRAL_GRYPHON = 55164,
+        SPELL_SWIFT_SPECTRAL_WIND_RIDER = 55173
+    };
+
+    bool IsSpectralGhostFlightSpell(SpellInfo const* spellInfo)
+    {
+        return spellInfo &&
+            (spellInfo->Id == SPELL_SWIFT_SPECTRAL_GRYPHON ||
+             spellInfo->Id == SPELL_SWIFT_SPECTRAL_WIND_RIDER);
+    }
+
+    bool HasSpectralGhostFlight(Player const* player)
+    {
+        return player &&
+            (player->HasAura(SPELL_SWIFT_SPECTRAL_GRYPHON) ||
+             player->HasAura(SPELL_SWIFT_SPECTRAL_WIND_RIDER) ||
+             player->HasIncreaseMountedFlightSpeedAura() ||
+             player->HasFlyAura());
+    }
+
+    void RemoveSpectralGhostFlight(Player* player)
+    {
+        if (!player || player->GetMapId() != MAP_EMERALD_DREAM || player->IsAlive())
+            return;
+
+        player->RemoveAurasDueToSpell(SPELL_SWIFT_SPECTRAL_GRYPHON);
+        player->RemoveAurasDueToSpell(SPELL_SWIFT_SPECTRAL_WIND_RIDER);
+
+        if (player->IsMounted())
+            player->Dismount();
+
+        player->SetCanFly(false);
+    }
+
     enum GameObjectEntries : uint32
     {
         // Duskwood
@@ -369,9 +410,73 @@ public:
     {
     }
 
+    void OnPlayerLogin(Player* player) override
+    {
+        if (EmeraldDreamway::HasSpectralGhostFlight(player))
+            EmeraldDreamway::RemoveSpectralGhostFlight(player);
+    }
+
+    void OnPlayerMapChanged(Player* player) override
+    {
+        if (EmeraldDreamway::HasSpectralGhostFlight(player))
+            EmeraldDreamway::RemoveSpectralGhostFlight(player);
+    }
+
+    void OnPlayerReleasedGhost(Player* player) override
+    {
+        EmeraldDreamway::RemoveSpectralGhostFlight(player);
+    }
+
+    void OnPlayerUpdate(Player* player, uint32 /*diff*/) override
+    {
+        // The spectral ghost mount can be applied during the zone update that
+        // follows the graveyard teleport, after OnPlayerReleasedGhost runs.
+        if (EmeraldDreamway::HasSpectralGhostFlight(player))
+            EmeraldDreamway::RemoveSpectralGhostFlight(player);
+    }
+
+    bool OnPlayerCanFlyInZone(
+        Player* player,
+        uint32 mapId,
+        uint32 /*zoneId*/,
+        SpellInfo const* bySpell) override
+    {
+        if (player && !player->IsAlive() &&
+            mapId == EmeraldDreamway::MAP_EMERALD_DREAM &&
+            EmeraldDreamway::IsSpectralGhostFlightSpell(bySpell))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     void OnPlayerLogout(Player* player) override
     {
         EmeraldDreamway::RemovePendingTeleport(player);
+    }
+
+    void OnPlayerBeforeChooseGraveyard(
+        Player* player,
+        TeamId /*teamId*/,
+        bool nearCorpse,
+        uint32& graveyardOverride) override
+    {
+        if (!player)
+            return;
+
+        uint32 mapId = player->GetMapId();
+
+        if (nearCorpse)
+            mapId = player->GetCorpseLocation().GetMapId();
+
+        if (mapId == EmeraldDreamway::MAP_EMERALD_DREAM)
+        {
+            // game_graveyard stores no orientation, and RepopAtGraveyard uses
+            // the player's current orientation for the graveyard teleport.
+            player->SetOrientation(EmeraldDreamway::GRAVEYARD_VERDANT_FIELDS_ORIENTATION);
+            graveyardOverride = EmeraldDreamway::GRAVEYARD_VERDANT_FIELDS;
+        }
     }
 };
 
