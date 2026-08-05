@@ -18,3 +18,27 @@ Features include
   - Vehicles
 - Player-specific error and availability messages
 - Automatic installation of database records
+
+# Installation
+1. Clone to your AzerothCore modules directory
+2. Rebuild `worldserver`
+3. Start `worldserver` The module's SQL files will automatically add the required GameObject templates and spawns to the world database
+
+# Configuration
+| Setting                            | Default | Description                          |
+| ---------------------------------- | ------: | ------------------------------------ |
+| `EmeraldDreamway.Enable`           |     `1` | Enables the complete Dreamway system |
+| `EmeraldDreamway.Pedestals.Enable` |     `1` | Enables clickable teleport pedestals |
+| `EmeraldDreamway.MinimumLevel`     |     `1` | Minimum level required               |
+| `EmeraldDreamway.AllowInCombat`    |     `0` | Allows use during combat             |
+| `EmeraldDreamway.AllowDead`        |     `0` | Allows dead players and ghosts       |
+| `EmeraldDreamway.AllowInVehicle`   |     `0` | Allows use while in a vehicle        |
+
+Each route can also be enabled or disabled independently:
+
+```ini
+EmeraldDreamway.Route.TwilightGrove.Enable = 1
+EmeraldDreamway.Route.BoughShadow.Enable = 1
+EmeraldDreamway.Route.DreamBough.Enable = 1
+EmeraldDreamway.Route.Seradane.Enable = 1
+```
