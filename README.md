@@ -20,8 +20,7 @@ Features include
 - Player-specific error and availability messages
 - Automatic installation of database records
 
-<img width="529" height="652" alt="image" src="https://github.com/user-attachments/assets/8f117154-94b2-493a-b430-1f0019a460b3" />
-
+<img width="3116" height="796" alt="image" src="https://github.com/user-attachments/assets/940829eb-df95-47ed-ae89-634d6d7194e6" />
 
 # Installation
 1. Clone repo to your AzerothCore modules directory
