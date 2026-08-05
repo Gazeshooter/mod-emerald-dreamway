@@ -297,6 +297,7 @@ namespace EmeraldDreamway
         }
 
         TeleportPlayer(player, *route);
+        
     }
 }
 
@@ -337,7 +338,9 @@ public:
         }
 
         StorePendingTeleport(player, *route);
-        
+
+        // Continue with AzerothCore's normal Goober activation.
+        // The GameObject template casts spell 60957 from Data10.  
         return false;
     }
 };
