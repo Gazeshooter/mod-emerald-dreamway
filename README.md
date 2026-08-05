@@ -20,9 +20,9 @@ Features include
 - Automatic installation of database records
 
 # Installation
-1. Clone to your AzerothCore modules directory
-2. Rebuild `worldserver`
-3. Start `worldserver` The module's SQL files will automatically add the required GameObject templates and spawns to the world database
+1. Clone repo to your AzerothCore modules directory
+2. Rebuild and restart `worldserver`
+The module's SQL files will automatically add the required GameObject templates and spawns to the world database
 
 # Configuration
 | Setting                            | Default | Description                          |
