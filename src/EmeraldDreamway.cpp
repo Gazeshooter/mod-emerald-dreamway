@@ -3,10 +3,15 @@
 #include "GameObject.h"
 #include "Player.h"
 #include "ScriptMgr.h"
+#include "SpellScript.h"
 
 #include <array>
+#include <chrono>
+#include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 namespace EmeraldDreamway
 {
@@ -28,6 +33,7 @@ namespace EmeraldDreamway
         GO_SERADANE_TO_DREAMWAY = 990007,
         GO_DREAMWAY_TO_SERADANE = 990008
     };
+
 
     struct TeleportDestination
     {
@@ -53,7 +59,7 @@ namespace EmeraldDreamway
             GO_TWILIGHT_GROVE_TO_DREAMWAY,
             0,
             "EmeraldDreamway.Route.TwilightGrove.Enable",
-            { 169, -2060.9365f, -942.6356f, 131.84442f, 3.6274557f }
+            { 169, -2048.6118f, -960.6592f, 135.36461f, 1.6953764f }
         },
         {
             GO_DREAMWAY_TO_TWILIGHT_GROVE,
@@ -67,7 +73,7 @@ namespace EmeraldDreamway
             GO_BOUGH_SHADOW_TO_DREAMWAY,
             1,
             "EmeraldDreamway.Route.BoughShadow.Enable",
-            { 169, -1999.9692f, -887.1238f, 128.27328f, 3.947896f }
+            { 169, -1996.7683f, -873.16077f, 129.8715f, 3.7413394f }
         },
         {
             GO_DREAMWAY_TO_BOUGH_SHADOW,
@@ -81,7 +87,7 @@ namespace EmeraldDreamway
             GO_DREAM_BOUGH_TO_DREAMWAY,
             1,
             "EmeraldDreamway.Route.DreamBough.Enable",
-            { 169, -2124.1707f, -985.322f, 130.74112f, 0.87699795f }
+            { 169, -2129.5247f, -1007.08514f, 132.26376f, 0.5958505f }
         },
         {
             GO_DREAMWAY_TO_DREAM_BOUGH,
@@ -95,7 +101,7 @@ namespace EmeraldDreamway
             GO_SERADANE_TO_DREAMWAY,
             0,
             "EmeraldDreamway.Route.Seradane.Enable",
-            { 169, -2125.8394f, -909.9735f, 135.20438f, 5.7817802f }
+            { 169, -2131.3113f, -896.9243f, 135.37054f, 5.7244782f }
         },
         {
             GO_DREAMWAY_TO_SERADANE,
@@ -104,6 +110,25 @@ namespace EmeraldDreamway
             { 0, 874.5052f, -3972.7332f, 145.82391f, 3.4519851f }
         }
     }};
+
+    using Clock = std::chrono::steady_clock;
+
+    struct PendingTeleport
+    {
+        uint32 GameObjectEntry;
+        uint32 SourceMapId;
+        float StartX;
+        float StartY;
+        float StartZ;
+        Clock::time_point ExpiresAt;
+    };
+
+    constexpr float MAX_CAST_MOVEMENT_DISTANCE = 0.5f;
+    constexpr float MAX_CAST_MOVEMENT_DISTANCE_SQ =
+        MAX_CAST_MOVEMENT_DISTANCE * MAX_CAST_MOVEMENT_DISTANCE;
+
+    std::unordered_map<uint32, PendingTeleport> PendingTeleports;
+    std::mutex PendingTeleportsMutex;
 
     DreamwayRoute const* FindRoute(uint32 gameObjectEntry)
     {
@@ -116,10 +141,162 @@ namespace EmeraldDreamway
         return nullptr;
     }
 
+    uint32 GetPlayerKey(Player const* player)
+    {
+        return player->GetGUID().GetCounter();
+    }
+
     void SendPlayerMessage(Player* player, std::string_view message)
     {
         if (player && player->GetSession())
             ChatHandler(player->GetSession()).SendSysMessage(message);
+    }
+
+    bool ValidatePlayerForRoute(Player* player, DreamwayRoute const& route)
+    {
+        if (!sConfigMgr->GetOption<bool>("EmeraldDreamway.Enable", true) ||
+            !sConfigMgr->GetOption<bool>("EmeraldDreamway.Pedestals.Enable", true))
+        {
+            SendPlayerMessage(player, "The Emerald Dreamway is currently unavailable.");
+            return false;
+        }
+
+        if (!sConfigMgr->GetOption<bool>(route.EnabledConfigKey, true))
+        {
+            SendPlayerMessage(player, "This Dreamway route is currently unavailable.");
+            return false;
+        }
+
+        if (player->GetMapId() != route.SourceMapId)
+        {
+            SendPlayerMessage(player, "This pedestal is not anchored to the correct part of the Dreamway.");
+            return false;
+        }
+
+        uint32 minimumLevel =
+            sConfigMgr->GetOption<uint32>("EmeraldDreamway.MinimumLevel", 1);
+
+        if (player->GetLevel() < minimumLevel)
+        {
+            SendPlayerMessage(
+                player,
+                "You must be at least level " + std::to_string(minimumLevel) +
+                    " to use the Emerald Dreamway.");
+            return false;
+        }
+
+        if (!sConfigMgr->GetOption<bool>("EmeraldDreamway.AllowInCombat", false) &&
+            player->IsInCombat())
+        {
+            SendPlayerMessage(player, "You cannot use the Emerald Dreamway while in combat.");
+            return false;
+        }
+
+        if (!sConfigMgr->GetOption<bool>("EmeraldDreamway.AllowDead", false) &&
+            !player->IsAlive())
+        {
+            SendPlayerMessage(player, "You cannot use the Emerald Dreamway while dead.");
+            return false;
+        }
+
+        if (!sConfigMgr->GetOption<bool>("EmeraldDreamway.AllowInVehicle", false) &&
+            player->GetVehicle())
+        {
+            SendPlayerMessage(player, "You cannot use the Emerald Dreamway while in a vehicle.");
+            return false;
+        }
+
+        return true;
+    }
+
+    bool TeleportPlayer(Player* player, DreamwayRoute const& route)
+    {
+        TeleportDestination const& destination = route.Destination;
+
+        if (!player->TeleportTo(
+                destination.MapId,
+                destination.X,
+                destination.Y,
+                destination.Z,
+                destination.Orientation))
+        {
+            SendPlayerMessage(player, "The Emerald Dreamway could not be reached.");
+            return false;
+        }
+
+        return true;
+    }
+
+    void StorePendingTeleport(Player* player, DreamwayRoute const& route)
+    {
+        PendingTeleport pending
+        {
+            route.GameObjectEntry,
+            route.SourceMapId,
+            player->GetPositionX(),
+            player->GetPositionY(),
+            player->GetPositionZ(),
+            Clock::now() + std::chrono::seconds(5)
+        };
+
+        std::lock_guard<std::mutex> lock(PendingTeleportsMutex);
+        PendingTeleports[GetPlayerKey(player)] = pending;
+    }
+
+    void RemovePendingTeleport(Player const* player)
+    {
+        if (!player)
+            return;
+
+        std::lock_guard<std::mutex> lock(PendingTeleportsMutex);
+        PendingTeleports.erase(GetPlayerKey(player));
+    }
+
+    std::optional<PendingTeleport> TakePendingTeleport(Player const* player)
+    {
+        std::lock_guard<std::mutex> lock(PendingTeleportsMutex);
+
+        auto itr = PendingTeleports.find(GetPlayerKey(player));
+        if (itr == PendingTeleports.end())
+            return std::nullopt;
+
+        PendingTeleport pending = itr->second;
+        PendingTeleports.erase(itr);
+
+        if (Clock::now() > pending.ExpiresAt)
+            return std::nullopt;
+
+        return pending;
+    }
+
+    void CompletePendingTeleport(Player* player)
+    {
+        std::optional<PendingTeleport> pending = TakePendingTeleport(player);
+        if (!pending)
+            return;
+
+        DreamwayRoute const* route = FindRoute(pending->GameObjectEntry);
+        if (!route)
+            return;
+
+        if (!ValidatePlayerForRoute(player, *route))
+            return;
+
+        if (player->GetMapId() != pending->SourceMapId)
+            return;
+
+        float deltaX = player->GetPositionX() - pending->StartX;
+        float deltaY = player->GetPositionY() - pending->StartY;
+        float deltaZ = player->GetPositionZ() - pending->StartZ;
+        float distanceSq = deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ;
+
+        if (distanceSq > MAX_CAST_MOVEMENT_DISTANCE_SQ)
+        {
+            SendPlayerMessage(player, "The Dreamway activation was interrupted.");
+            return;
+        }
+
+        TeleportPlayer(player, *route);
     }
 }
 
@@ -142,73 +319,66 @@ public:
         if (!route)
             return false;
 
-        if (!sConfigMgr->GetOption<bool>("EmeraldDreamway.Enable", true) ||
-            !sConfigMgr->GetOption<bool>("EmeraldDreamway.Pedestals.Enable", true))
+        RemovePendingTeleport(player);
+
+        if (!ValidatePlayerForRoute(player, *route))
+            return true;
+
+        if (!sConfigMgr->GetOption<bool>("EmeraldDreamway.Cast.Enable", true))
         {
-            SendPlayerMessage(player, "The Emerald Dreamway is currently unavailable.");
+            TeleportPlayer(player, *route);
             return true;
         }
 
-        if (!sConfigMgr->GetOption<bool>(route->EnabledConfigKey, true))
+        if (player->IsNonMeleeSpellCast(false))
         {
-            SendPlayerMessage(player, "This Dreamway route is currently unavailable.");
+            SendPlayerMessage(player, "You are already casting another spell.");
             return true;
         }
 
-        if (player->GetMapId() != route->SourceMapId)
-        {
-            SendPlayerMessage(player, "This pedestal is not anchored to the correct part of the Dreamway.");
-            return true;
-        }
+        StorePendingTeleport(player, *route);
 
-        uint32 minimumLevel = sConfigMgr->GetOption<uint32>("EmeraldDreamway.MinimumLevel", 1);
-        if (player->GetLevel() < minimumLevel)
-        {
-            SendPlayerMessage(
-                player,
-                "You must be at least level " + std::to_string(minimumLevel) +
-                    " to use the Emerald Dreamway.");
-            return true;
-        }
+        // Continue with AzerothCore's normal Goober activation.
+        // The GameObject template casts spell 60957 from Data10 and uses
+        // castBarCaption for the visible interaction text.
+        return false;
+    }
+};
 
-        if (!sConfigMgr->GetOption<bool>("EmeraldDreamway.AllowInCombat", false) &&
-            player->IsInCombat())
-        {
-            SendPlayerMessage(player, "You cannot use the Emerald Dreamway while in combat.");
-            return true;
-        }
+class spell_emerald_dreamway_activation : public SpellScript
+{
+    PrepareSpellScript(spell_emerald_dreamway_activation);
 
-        if (!sConfigMgr->GetOption<bool>("EmeraldDreamway.AllowDead", false) &&
-            !player->IsAlive())
-        {
-            SendPlayerMessage(player, "You cannot use the Emerald Dreamway while dead.");
-            return true;
-        }
+    void HandleAfterCast()
+    {
+        if (Player* player = GetCaster()->ToPlayer())
+            EmeraldDreamway::CompletePendingTeleport(player);
+    }
 
-        if (!sConfigMgr->GetOption<bool>("EmeraldDreamway.AllowInVehicle", false) &&
-            player->GetVehicle())
-        {
-            SendPlayerMessage(player, "You cannot use the Emerald Dreamway while in a vehicle.");
-            return true;
-        }
+    void Register() override
+    {
+        AfterCast += SpellCastFn(spell_emerald_dreamway_activation::HandleAfterCast);
+    }
+};
 
-        TeleportDestination const& destination = route->Destination;
+class emerald_dreamway_player_cleanup : public PlayerScript
+{
+public:
+    emerald_dreamway_player_cleanup()
+        : PlayerScript("emerald_dreamway_player_cleanup")
+    {
+    }
 
-        if (!player->TeleportTo(
-                destination.MapId,
-                destination.X,
-                destination.Y,
-                destination.Z,
-                destination.Orientation))
-        {
-            SendPlayerMessage(player, "The Emerald Dreamway could not be reached.");
-        }
-
-        return true;
+    void OnPlayerLogout(Player* player) override
+    {
+        EmeraldDreamway::RemovePendingTeleport(player);
     }
 };
 
 void AddEmeraldDreamwayScripts()
 {
     new go_emerald_dreamway_pedestal();
+    new emerald_dreamway_player_cleanup();
+
+    RegisterSpellScript(spell_emerald_dreamway_activation);
 }

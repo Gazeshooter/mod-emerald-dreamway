@@ -12,10 +12,17 @@ EmeraldDreamway.Enable = 1
 #
 # EmeraldDreamway.Pedestals.Enable
 #     Enables the clickable pedestal implementation.
-#     This can be disabled later when AreaTriggers replace the pedestals.
 #     Default: 1
 #
 EmeraldDreamway.Pedestals.Enable = 1
+
+#
+# EmeraldDreamway.Cast.Enable
+#     Uses the 2-second Cosmetic Nature Cast spell before teleporting.
+#     Movement of more than 0.5 yards prevents the teleport.
+#     Default: 1
+#
+EmeraldDreamway.Cast.Enable = 1
 
 #
 # EmeraldDreamway.MinimumLevel
